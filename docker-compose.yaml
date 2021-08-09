@@ -1,0 +1,8 @@
+version: '3.9'
+services:
+  semanticgan:
+    build: .
+    volumes:
+      - .:/semanticGAN
+    stdin_open: true
+    tty: true
