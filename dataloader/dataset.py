@@ -188,7 +188,15 @@ class CelebAMaskDataset(Dataset):
                 'mask': mask_tensor
             }
         else:
-            img_tensor = self.unlabel_transform(img_pil)
+            self.transform = transforms.Compose(
+                [
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True)
+                ]
+            )
+            img_tensor = self.transform(img_pil)
+            # img_tensor = self.unlabel_transform(img_pil)
             return {
                 'image': img_tensor,
             }

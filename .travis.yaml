@@ -1,0 +1,8 @@
+language: python
+
+# command to install dependencies
+install:
+  - pip3 install --upgrade pip
+  - pip install -r requirements.txt
+
+script: echo hello && ls && python semanticGAN/prepare_inception.py --output FIP_outputs_test_travis.pkl --dataset_name celeba-mask "/workspace/data"
