@@ -29,6 +29,7 @@ import torch
 import cv2
 import albumentations
 import albumentations.augmentations as A
+from glob import glob
 
 class HistogramEqualization(object):
     def __call__(self, img):
@@ -87,6 +88,9 @@ class CelebAMaskDataset(Dataset):
             self.data_root = os.path.join(dataroot, 'unlabel_data')
             if unlabel_limit_size is None:
                 self.idx_list = np.loadtxt(os.path.join(self.data_root, 'unlabel_list.txt'), dtype=str)
+              # TODO
+                # self.idx_list = glob(self.data_root + "/*.jpg")
+                # self.idx_list = [idx.replace(self.data_root, '') for idx in self.idx_list]
             else:
                 self.idx_list = np.loadtxt(os.path.join(self.data_root, 'unlabel_{}_list.txt'.format(unlabel_limit_size)), dtype=str)
 
