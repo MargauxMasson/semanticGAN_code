@@ -18,8 +18,14 @@ CVPR 2021 **[[Paper](https://arxiv.org/abs/2104.05833)]  [[Supp](https://nv-tlab
 ```
 pip install -r requirements.txt
 ```
+Start docker:
+docker run --rm -it --name semanticGAN --network=host --gpus='device=0' -v /home/ec2-user/SageMaker/semanticGAN_code/:/workspace semanticgan_code_semanticgan bash
 
 ## Training 
+
+python semanticGAN/prepare_inception.py --output FIP_outputs.pkl --dataset_name celeba-mask "/workspace/data"
+
+python semanticGAN/train_seg_gan.py --img_dataset data/label_data/image --seg_dataset data/label_data/label --inception FIP_outputs.pkl --seg_name celeba-mask --checkoint_dir checkpoints
 
 To reproduce paper **Semantic Segmentation with Generative Models: Semi-Supervised Learning and Strong Out-of-Domain Generalization**: 
 

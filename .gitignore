@@ -3,3 +3,6 @@
 FIP_outputs_test_travis.pkl
 .idea
 **/.idea
+__pycache__
+**/__pycache__
+**/**/__pycache__

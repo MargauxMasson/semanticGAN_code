@@ -8,4 +8,5 @@ scipy==1.5.0
 torch
 torchvision
 tensorboard
+Ninja
 
