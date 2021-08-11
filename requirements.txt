@@ -9,4 +9,5 @@ torch
 torchvision
 tensorboard
 Ninja
+tqdm
 
