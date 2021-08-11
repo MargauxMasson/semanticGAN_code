@@ -25,7 +25,7 @@ docker run --rm -it --name semanticGAN --network=host --gpus='device=0' -v /home
 DOCKER:
 docker build . --network=host -t semanticgan_image
 
-docker run --rm -it --name semanticgan --network=host --gpus='device=2' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/prepare_inception.py --output FIP_outputs.pkl --dataset_name celeba-mask "/workspace/data" && python /workspace/semanticGAN/train_seg_gan.py --batch 16 --save_every 2000 --viz_every 2000 --img_dataset /workspace/data --seg_dataset /workspace/data --inception /workspace/FIP_outputs.pkl --seg_name celeba-mask --checkpoint_dir /workspace/checkpoints"
+docker run --rm -it --name semanticgan --network=host --gpus='device=0' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v /home/ec2-user/semanticGAN_code:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && ls && cd /workspace/ && python semanticGAN/prepare_inception.py --output FIP_outputs.pkl --dataset_name celeba-mask "/workspace/data" && python /workspace/semanticGAN/train_seg_gan.py --batch 2 --save_every 2000 --viz_every 2000 --img_dataset /workspace/data --seg_dataset /workspace/data --inception /workspace/FIP_outputs.pkl --seg_name celeba-mask --checkpoint_dir /workspace/checkpoints"
 
 
 

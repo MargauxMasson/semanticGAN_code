@@ -6,3 +6,4 @@ FIP_outputs_test_travis.pkl
 __pycache__
 **/__pycache__
 **/**/__pycache__
+.checkpoints
