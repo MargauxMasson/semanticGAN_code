@@ -6,4 +6,15 @@ FIP_outputs_test_travis.pkl
 __pycache__
 **/__pycache__
 **/**/__pycache__
-.checkpoints
+results_inference
+results_inference2
+results_inference3
+checkpoints
+checkpoints_new_dataloader
+checkpoints_encoder
+data
+data2
+wandb
+.vscode
+FIP_outputs_2.pkl
+FIP_outputs.pkl

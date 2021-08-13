@@ -46,9 +46,9 @@ class AdjustGamma(object):
 
         return img_gamma
 
-class CelebAMaskDataset(Dataset):
+class DatasetLoader(Dataset):
     def __init__(self, args, dataroot, unlabel_transform=None, latent_dir=None, is_label=True, phase='train', 
-                    limit_size=None, unlabel_limit_size=None, aug=False, resolution=256):
+                aug=False, resolution=256, extension="jpg"):
 
         self.args = args
         self.is_label = is_label
@@ -59,43 +59,39 @@ class CelebAMaskDataset(Dataset):
             self.data_root = os.path.join(dataroot, 'label_data')
         
             if phase == 'train':
-                if limit_size is None:
-                    self.idx_list = np.loadtxt(os.path.join(self.data_root, 'train_full_list.txt'), dtype=str)
-                else:
-                    self.idx_list = np.loadtxt(os.path.join(self.data_root, 
-                                            'train_{}_list.txt'.format(limit_size)), dtype=str).reshape(-1)
+                print(f"Training folder: {os.path.join(self.data_root, 'train')}")
+                print(f"Looking for files with the extension: {extension}")
+
+                self.img_paths_list = glob(os.path.join(self.data_root, 'train', 'image') + f"/*.{extension}")
+                self.label_paths_list = glob(os.path.join(self.data_root, 'train', 'label') + f"/*.{extension}")
+
             elif phase == 'val':
-                if limit_size is None:
-                    self.idx_list = np.loadtxt(os.path.join(self.data_root, 'val_full_list.txt'), dtype=str)
-                else:
-                    self.idx_list = np.loadtxt(os.path.join(self.data_root, 
-                                            'val_{}_list.txt'.format(limit_size)), dtype=str).reshape(-1)
+                print(f"Validation folder: {os.path.join(self.data_root, 'val')}")
+                print(f"Looking for files with the extension: {extension}")
+
+                self.img_paths_list = glob(os.path.join(self.data_root, 'val', 'image') + f"/*.{extension}")
+                self.label_paths_list = glob(os.path.join(self.data_root, 'val', 'label') + f"/*.{extension}")
+
             elif phase == 'train-val':
                 # concat both train and val
-                if limit_size is None:
-                    train_list = np.loadtxt(os.path.join(self.data_root, 'train_full_list.txt'), dtype=str)
-                    val_list = np.loadtxt(os.path.join(self.data_root, 'val_full_list.txt'), dtype=str)
-                    self.idx_list = list(train_list) + list(val_list)
-                else:
-                    train_list = np.loadtxt(os.path.join(self.data_root, 
-                                            'train_{}_list.txt'.format(limit_size)), dtype=str).reshape(-1)
-                    val_list = np.loadtxt(os.path.join(self.data_root, 
-                                            'val_{}_list.txt'.format(limit_size)), dtype=str).reshape(-1)
-                    self.idx_list = list(train_list) + list(val_list)
-            else:
-                self.idx_list = np.loadtxt(os.path.join(self.data_root, 'test_list.txt'), dtype=str)
+                print(f"Training folder: {os.path.join(self.data_root, 'train')}")
+                print(f"Validation folder: {os.path.join(self.data_root, 'val')}")
+                print(f"Looking for files with the extension: {extension}")
+
+                img_train_list = glob(os.path.join(self.data_root, 'train', 'image') + f"/*.{extension}")
+                label_train_list = glob(os.path.join(self.data_root, 'train', 'label') + f"/*.{extension}")
+
+                img_train_list = glob(os.path.join(self.data_root, 'val', 'image') + f"/*.{extension}")
+                label_val_list = glob(os.path.join(self.data_root, 'val', 'label') + f"/*.{extension}")
+
+                self.img_paths_list = list(img_train_list) + list(img_train_list)
+                self.label_paths_list = list(label_train_list) + list(label_val_list)
+
+
         else:
             self.data_root = os.path.join(dataroot, 'unlabel_data')
-            if unlabel_limit_size is None:
-                self.idx_list = np.loadtxt(os.path.join(self.data_root, 'unlabel_list.txt'), dtype=str)
-              # TODO
-                # self.idx_list = glob(self.data_root + "/*.jpg")
-                # self.idx_list = [idx.replace(self.data_root, '') for idx in self.idx_list]
-            else:
-                self.idx_list = np.loadtxt(os.path.join(self.data_root, 'unlabel_{}_list.txt'.format(unlabel_limit_size)), dtype=str)
+            self.img_paths_list = glob(os.path.join(self.data_root, 'image') + f"/*.{extension}")
 
-        self.img_dir = os.path.join(self.data_root, 'image')
-        self.label_dir = os.path.join(self.data_root, 'label')
 
         self.phase = phase
         self.color_map = {
@@ -109,7 +105,8 @@ class CelebAMaskDataset(Dataset):
             7: [ 142,142,56]
         }
 
-        self.data_size = len(self.idx_list)
+        self.data_size = len(self.img_paths_list)
+        print(f"\nLabel: {is_label}, Phase: {phase} -- There are {self.data_size} files")
         self.resolution = resolution
 
         self.aug = aug
@@ -162,11 +159,15 @@ class CelebAMaskDataset(Dataset):
     def __getitem__(self, idx):
         if idx >= self.data_size:
             idx = idx % (self.data_size)
-        img_idx = self.idx_list[idx]
-        img_pil = Image.open(os.path.join(self.img_dir, img_idx)).convert('RGB').resize((self.resolution, self.resolution))
+        img_path = self.img_paths_list[idx]
+
+        # TODO change this to read tiff files
+        # if "tif" in img_path:
+        img_pil = Image.open(img_path).resize((self.resolution, self.resolution))
+        # img_pil = Image.open(img_path).convert('RGB').resize((self.resolution, self.resolution))
 
         if self.is_label:
-            mask_pil = Image.open(os.path.join(self.label_dir, img_idx)).convert('L').resize(
+            mask_pil = Image.open(self.label_paths_list[idx]).convert('L').resize(
                 (self.resolution, self.resolution), resample=0)
             if (self.phase == 'train' or self.phase == 'train-val') and self.aug:
                 augmented = self.aug_t(image=np.array(img_pil), mask=np.array(mask_pil))
@@ -201,7 +202,6 @@ class CelebAMaskDataset(Dataset):
                 ]
             )
             img_tensor = self.transform(img_pil)
-            # img_tensor = self.unlabel_transform(img_pil)
             return {
                 'image': img_tensor,
             }

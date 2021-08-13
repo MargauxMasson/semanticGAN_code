@@ -37,7 +37,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from models.stylegan2_seg import GeneratorSeg, Discriminator, MultiscaleDiscriminator, GANLoss
-from dataloader.dataset import CelebAMaskDataset
+from dataloader.dataset import DatasetLoader
 
 from utils.distributed import (
     get_rank,
@@ -51,6 +51,7 @@ import functools
 from utils.inception_utils import sample_gema, prepare_inception_metrics
 import cv2
 import random
+
 
 def data_sampler(dataset, shuffle, distributed):
     if distributed:
@@ -463,16 +464,13 @@ def train(args, ckpt_dir, img_loader, seg_loader, seg_val_loader, generator, dis
                     sample_img = sample_img.detach().cpu()
                     sample_seg = sample_seg.detach().cpu()
 
-                    if args.seg_name == 'celeba-mask':
-                        sample_seg = torch.argmax(sample_seg, dim=1)
-                        color_map = seg_val_loader.dataset.color_map
-                        sample_mask = torch.zeros((sample_seg.shape[0], sample_seg.shape[1], sample_seg.shape[2], 3), dtype=torch.float)
-                        for key in color_map:
-                            sample_mask[sample_seg==key] = torch.tensor(color_map[key], dtype=torch.float)
-                        sample_mask = sample_mask.permute(0,3,1,2)
+                    sample_seg = torch.argmax(sample_seg, dim=1)
+                    color_map = seg_val_loader.dataset.color_map
+                    sample_mask = torch.zeros((sample_seg.shape[0], sample_seg.shape[1], sample_seg.shape[2], 3), dtype=torch.float)
+                    for key in color_map:
+                        sample_mask[sample_seg==key] = torch.tensor(color_map[key], dtype=torch.float)
+                    sample_mask = sample_mask.permute(0,3,1,2)
                     
-                    else:
-                        raise Exception('No such a dataloader!')
 
                     os.makedirs(os.path.join(ckpt_dir, 'sample'), exist_ok=True)
                     utils.save_image(
@@ -523,27 +521,17 @@ def train(args, ckpt_dir, img_loader, seg_loader, seg_val_loader, generator, dis
                 )
 
 def get_seg_dataset(args, phase='train'):
-    if args.seg_name == 'celeba-mask':
-        seg_dataset = CelebAMaskDataset(args, args.seg_dataset, is_label=True, phase=phase,
-                                            limit_size=args.limit_data, aug=args.seg_aug, resolution=args.size)
-   
-    else:
-        raise Exception('No such a dataloader!')
-    
+    seg_dataset = DatasetLoader(args, args.seg_dataset, is_label=True, phase=phase, aug=args.seg_aug, resolution=args.size, extension=args.extension)
     return seg_dataset
 
 def get_transformation(args):
-    if args.seg_name == 'celeba-mask':
-        transform = transforms.Compose(
-                    [
-                        transforms.RandomHorizontalFlip(),
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5), inplace=True)
-                    ]
-                )
-    
-    else:
-        raise Exception('No such a dataloader!')
+    transform = transforms.Compose(
+                [
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5), inplace=True)
+                ]
+            )
     
     return transform
 
@@ -556,7 +544,6 @@ if __name__ == '__main__':
     parser.add_argument('--seg_dataset', type=str, required=True)
     parser.add_argument('--inception', type=str, help='inception pkl', required=True)
 
-    parser.add_argument('--seg_name', type=str, help='segmentation dataloader name[celeba-mask]', default='celeba-mask')
     parser.add_argument('--iter', type=int, default=800000)
     parser.add_argument('--batch', type=int, default=16)
     parser.add_argument('--n_sample', type=int, default=64)
@@ -577,8 +564,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.002)
     parser.add_argument('--channel_multiplier', type=int, default=2)
     
-    parser.add_argument('--limit_data', type=str, default=None, help='number of limited label data point to use')
-    parser.add_argument('--unlabel_limit_data', type=str, default=None, help='number of limited unlabel data point to use')
+    parser.add_argument('--extension', type=str, default="jpg", help='Extension of the files in the dataset (jpg, png, tiff, etc')
 
     parser.add_argument('--image_mode', type=str, default='RGB', help='Image mode RGB|L')
     parser.add_argument('--seg_dim', type=int, default=8)
@@ -703,13 +689,10 @@ if __name__ == '__main__':
         )
 
 
-    if args.seg_name == 'celeba-mask':
-        transform = get_transformation(args)
-        img_dataset = CelebAMaskDataset(args, args.img_dataset, unlabel_transform=transform,
-                                        unlabel_limit_size=args.unlabel_limit_data,
-                                        is_label=False, resolution=args.size)
-    else:
-        raise Exception('No such a dataloader!')
+    transform = get_transformation(args)
+    img_dataset = DatasetLoader(args, args.img_dataset, unlabel_transform=transform,
+                                    is_label=False, resolution=args.size, extension=args.extension)
+
 
     print("Loading unlabel dataloader with size ", img_dataset.data_size)
 
