@@ -22,10 +22,19 @@ Start docker:
 docker run --rm -it --name semanticGAN --network=host --gpus='device=0' -v /home/ec2-user/SageMaker/semanticGAN_code/:/workspace semanticgan_code_semanticgan bash
 
 ## Training 
+DOCKER:
+docker build . --network=host -t semanticgan_image
 
-python semanticGAN/prepare_inception.py --output FIP_outputs.pkl --dataset_name celeba-mask "/workspace/data"
+GAN training:
 
-python semanticGAN/train_seg_gan.py --img_dataset data/label_data/image --seg_dataset data/label_data/label --inception FIP_outputs.pkl --seg_name celeba-mask --checkoint_dir checkpoints
+docker run --rm -it --name semanticgan2 --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/prepare_inception.py --output FIP_outputs.pkl "/workspace/data2" && python /workspace/semanticGAN/train_seg_gan.py --batch 32 --save_every 2000 --viz_every 2000 --iter 6000 --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --inception /workspace/FIP_outputs.pkl --checkpoint_dir /workspace/checkpoints"
+
+
+Encoder training:
+docker run --rm -it --name semanticgan2 --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/train_enc.py --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --ckpt /workspace/checkpoints/run-Aug11_04-17-52/ckpt/072000.pt --checkpoint_dir /workspace/checkpoints_encoder"
+
+Inference:
+docker run --rm -it --name semanticgan_inference --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/inference.py --ckpt /workspace/checkpoints_encoder/run-Aug11_23-00-31/ckpt/020000.pt --img_dir /workspace/data/test_face_34_class/ --outdir results_inference3 --w_plus --image_mode RGB --seg_dim 8 --step 500"
 
 To reproduce paper **Semantic Segmentation with Generative Models: Semi-Supervised Learning and Strong Out-of-Domain Generalization**: 
 
@@ -33,6 +42,22 @@ To reproduce paper **Semantic Segmentation with Generative Models: Semi-Supervis
 2. Run **Step2: Encoder training**
 3. Run **Inference & Optimization**.  
 
+
+## ERRORS
+ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+=> RUN apt-get update
+RUN apt install -y libgl1-mesa-glx
+
+ImportError: libgthread-2.0.so.0: cannot open shared object file: No such file or directory
+=> apt update
+apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6
+
+if CUDA error:
+OSError: CUDA_HOME environment variable is not set. Please set it to your CUDA install root.
+=> conda install pytorch-gpu -c conda-forge
+
+Ninja install:
+pip install Ninja
 
 ---
 #### 0. Prepare for FID calculation

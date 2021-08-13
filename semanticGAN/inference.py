@@ -39,19 +39,16 @@ from models import lpips
 
 
 def mask2rgb(args, mask):
-    if args.dataset_name == 'celeba-mask':
-        color_table = torch.tensor(
-                        [[  0,   0,   0],
-                        [ 0,0,205],
-                        [132,112,255],
-                        [ 25,25,112],
-                        [187,255,255],
-                        [ 102,205,170],
-                        [ 227,207,87],
-                        [ 142,142,56]], dtype=torch.float)
+    color_table = torch.tensor(
+                    [[  0,   0,   0],
+                    [ 0,0,205],
+                    [132,112,255],
+                    [ 25,25,112],
+                    [187,255,255],
+                    [ 102,205,170],
+                    [ 227,207,87],
+                    [ 142,142,56]], dtype=torch.float)
 
-    else:
-        raise Exception('No such a dataloader!')
 
     rgb_tensor = F.embedding(mask, color_table).permute(0,3,1,2)
     return rgb_tensor
@@ -137,32 +134,13 @@ def get_lr(t, initial_lr, rampdown=0.25, rampup=0.05):
     return initial_lr * lr_ramp
 
 def get_transformation(args):
-    if args.dataset_name == 'celeba-mask':
-        transform = transforms.Compose(
-                [
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
-                ]
-            )
-    elif args.dataset_name == 'cxr':
-        transform = transforms.Compose(
-                        [
-                            HistogramEqualization(),
-                            AdjustGamma(0.5),
-                            transforms.ToTensor(),
-                            transforms.Normalize((0.5,), (0.5,)),
-                        ]
-                    )
-    elif args.dataset_name == 'isic':
-        transform = transforms.Compose(
-                [
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
-                ]
-            )
-    else:
-        raise Exception('No such a dataloader!')
-    
+    transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)),
+            ]
+        )
+   
     return transform
 
 
@@ -198,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--noise', type=float, default=0.05)
     parser.add_argument('--noise_ramp', type=float, default=0.75)
-    parser.add_argument('--step', type=int, default=100, help='optimization steps [100-500 should give good results]')
+    parser.add_argument('--step', type=int, default=500, help='optimization steps [100-500 should give good results]')
     parser.add_argument('--noise_regularize', type=float, default=1e2)
     parser.add_argument('--lambda_mse', type=float, default=0.1)
     parser.add_argument('--lambda_mean', type=float, default=0.01)

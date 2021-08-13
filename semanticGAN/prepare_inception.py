@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, ConcatDataset
 
 import argparse
 from utils import inception_utils
-from dataloader.dataset import (CelebAMaskDataset)
+from dataloader.dataset import (DatasetLoader)
 import pickle
 
 @torch.no_grad()
@@ -56,12 +56,9 @@ def extract_features(args, loader, inception, device):
 
 
 def get_dataset(args):
-    if args.dataset_name == 'celeba-mask':
-        unlabel_dataset = CelebAMaskDataset(args, args.path, is_label=False)
-        train_val_dataset = CelebAMaskDataset(args, args.path, is_label=True, phase='train-val')
-        dataset = ConcatDataset([unlabel_dataset, train_val_dataset])
-    else:
-        raise Exception('No such a dataloader!')
+    unlabel_dataset = DatasetLoader(args, args.path, is_label=False, extension=args.extension)
+    train_val_dataset = DatasetLoader(args, args.path, is_label=True, phase='train-val', extension=args.extension)
+    dataset = ConcatDataset([unlabel_dataset, train_val_dataset])
     return dataset
 
 if __name__ == '__main__':
@@ -75,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_sample', type=int, default=50000)
     parser.add_argument('--output', type=str, required=True)
     parser.add_argument('--image_mode', type=str, default='RGB')
-    parser.add_argument('--dataset_name', type=str, help='[celeba-mask]')
+    parser.add_argument('--extension', type=str, default="jpg", help='Extension of the files in the dataset (jpg, png, tiff, etc')
     parser.add_argument('path', metavar='PATH', help='path to datset dir')
 
     args = parser.parse_args()
@@ -87,8 +84,6 @@ if __name__ == '__main__':
 
     pools, logits = extract_features(args, loader, inception, device)
 
-    # pools = pools[: args.n_sample]
-    # logits = logits[: args.n_sample]
 
     print(f'extracted {pools.shape[0]} features')
 

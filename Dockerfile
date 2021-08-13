@@ -1,14 +1,11 @@
-FROM python:3.7.6
+FROM pytorch/pytorch:1.9.0-cuda10.2-cudnn7-devel
 
-RUN mkdir /workspace/
+RUN ls
 COPY requirements.txt /workspace/requirements.txt
-# COPY . /workspace/semanticGAN
-
-RUN pip install --upgrade pip
-RUN pip3 install -r /workspace/requirements.txt
-
+RUN apt-get update 
+RUN apt install -y libgl1-mesa-glx
+RUN apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6
+RUN pip install -r /workspace/requirements.txt
 WORKDIR /workspace/
-
 CMD "ls"
-ENV PYTHONDONTWRITEBYTECODE=true
 

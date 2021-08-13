@@ -40,7 +40,7 @@ from torch.utils.tensorboard import SummaryWriter
 from models.stylegan2_seg import GeneratorSeg
 from models.encoder_model import FPNEncoder, ResEncoder
 
-from dataloader.dataset import CelebAMaskDataset
+from dataloader.dataset import DatasetLoader
 
 from utils.distributed import (
     get_rank,
@@ -199,18 +199,16 @@ def make_image(tensor):
 
 
 def mask2rgb(args, mask):
-    if args.seg_name == 'celeba-mask':
-        color_table = torch.tensor(
-            [[0, 0, 0],
-             [0, 0, 205],
-             [132, 112, 255],
-             [25, 25, 112],
-             [187, 255, 255],
-             [102, 205, 170],
-             [227, 207, 87],
-             [142, 142, 56]], dtype=torch.float)
-    else:
-        raise Exception('No such a dataloader!')
+    color_table = torch.tensor(
+        [[0, 0, 0],
+            [0, 0, 205],
+            [132, 112, 255],
+            [25, 25, 112],
+            [187, 255, 255],
+            [102, 205, 170],
+            [227, 207, 87],
+            [142, 142, 56]], dtype=torch.float)
+
 
     rgb_tensor = F.embedding(mask, color_table).permute(0, 3, 1, 2)
     return rgb_tensor
@@ -320,12 +318,9 @@ def sample_unlabel_viz_imgs(args, unlabel_n_sample, unlabel_loader, encoder, gen
         for i, data in enumerate(unlabel_loader):
             if val_count >= unlabel_n_sample:
                 break
-            if args.seg_name == 'CXR' or args.seg_name == 'CXR-single':
-                val_count += data.shape[0]
-                real_img = data.to(device)
-            else:
-                val_count += data['image'].shape[0]
-                real_img = data['image'].to(device)
+
+            val_count += data['image'].shape[0]
+            real_img = data['image'].to(device)
 
             latent_w = encoder(real_img)
             recon_img, recon_seg = generator([latent_w], input_is_latent=True)
@@ -408,10 +403,7 @@ def train(args, ckpt_dir, img_loader, seg_loader, seg_val_loader, generator, per
 
             break
 
-        if args.seg_name == 'celeba-mask':
-            real_img = next(img_loader)['image']
-        else:
-            raise Exception('No such a dataloader!')
+        real_img = next(img_loader)['image']
 
         real_img = real_img.to(device)
 
@@ -589,25 +581,19 @@ def train(args, ckpt_dir, img_loader, seg_loader, seg_val_loader, generator, per
 
 
 def get_seg_dataset(args, phase='train'):
-    if args.seg_name == 'celeba-mask':
-        seg_dataset = CelebAMaskDataset(args, args.seg_dataset, is_label=True, phase=phase,
-                                        limit_size=args.limit_data, aug=args.seg_aug, resolution=args.size)
-    else:
-        raise Exception('No such a dataloader!')
+    seg_dataset = DatasetLoader(args, args.seg_dataset, is_label=True, phase=phase,
+                                aug=args.seg_aug, resolution=args.size, extension=args.extension)
 
     return seg_dataset
 
 
 def get_transformation(args):
-    if args.seg_name == 'celeba-mask':
-        transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True)
-            ]
-        )
-    else:
-        raise Exception('No such a dataloader!')
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True)
+        ]
+    )
 
     return transform
 
@@ -622,15 +608,14 @@ if __name__ == '__main__':
 
     parser.add_argument('--ckpt', type=str, help='checkpoint of pretrained gan', required=True)
 
-    parser.add_argument('--seg_name', type=str, help='segmentation dataloader name [celeba-mask]', default='celeba-mask')
     parser.add_argument('--iter', type=int, default=800000)
     parser.add_argument('--batch', type=int, default=16)
     parser.add_argument('--val_batch', type=int, default=16)
     parser.add_argument('--n_sample', type=int, default=32)
     parser.add_argument('--size', type=int, default=256)
 
-    parser.add_argument('--viz_every', type=int, default=100)
-    parser.add_argument('--eval_every', type=int, default=100)
+    parser.add_argument('--viz_every', type=int, default=2000)
+    parser.add_argument('--eval_every', type=int, default=2000)
     parser.add_argument('--save_every', type=int, default=2000)
 
     parser.add_argument('--lr', type=float, default=0.001)
@@ -668,9 +653,8 @@ if __name__ == '__main__':
     parser.add_argument('--enc_backbone', type=str, help='encoder backbone[res|fpn]', default='fpn')
     parser.add_argument('--optimizer', type=str, help='encoder backbone[adam|ranger]', default='ranger')
 
-    parser.add_argument('--limit_data', type=str, default=None, help='number of limited label data point to use')
-    parser.add_argument('--unlabel_limit_data', type=str, default=None,
-                        help='number of limited unlabel data point to use')
+    parser.add_argument('--extension', type=str, default="jpg", help='Extension of the files in the dataset (jpg, png, tiff, etc')
+
 
     parser.add_argument('--checkpoint_dir', type=str, default='./checkpoint/')
 
@@ -770,13 +754,9 @@ if __name__ == '__main__':
             find_unused_parameters=True,
         )
 
-    if args.seg_name == 'celeba-mask':
-        transform = get_transformation(args)
-        img_dataset = CelebAMaskDataset(args, args.img_dataset, unlabel_transform=transform,
-                                        unlabel_limit_size=args.unlabel_limit_data,
-                                        is_label=False, resolution=args.size)
-    else:
-        raise Exception('No such a dataloader!')
+    transform = get_transformation(args)
+    img_dataset = DatasetLoader(args, args.img_dataset, unlabel_transform=transform,
+                                is_label=False, resolution=args.size, extension=args.extension)
 
     img_loader = data.DataLoader(
         img_dataset,
@@ -788,25 +768,19 @@ if __name__ == '__main__':
     )
     print("Loading unlabel dataloader with size ", len(img_dataset))
 
-    if args.seg_name == 'celeba-mask':
-        seg_dataset = get_seg_dataset(args, phase='train')
-        seg_loader = data.DataLoader(
-            seg_dataset,
-            batch_size=args.batch,
-            sampler=data_sampler(seg_dataset, shuffle=True, distributed=args.distributed),
-            drop_last=True,
-            pin_memory=True,
-            num_workers=4,
-        )
-    else:
-        raise Exception('No such a dataloader!')
+    seg_dataset = get_seg_dataset(args, phase='train')
+    seg_loader = data.DataLoader(
+        seg_dataset,
+        batch_size=args.batch,
+        sampler=data_sampler(seg_dataset, shuffle=True, distributed=args.distributed),
+        drop_last=True,
+        pin_memory=True,
+        num_workers=4,
+    )
 
     print("Loading train dataloader with size ", seg_dataset.data_size)
 
-    if args.seg_name == 'celeba-mask':
-        seg_val_dataset = get_seg_dataset(args, phase='val')
-    else:
-        raise Exception('No such a dataloader!')
+    seg_val_dataset = get_seg_dataset(args, phase='val')
 
     print("Loading val dataloader with size ", seg_val_dataset.data_size)
 
