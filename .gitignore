@@ -18,3 +18,7 @@ wandb
 .vscode
 FIP_outputs_2.pkl
 FIP_outputs.pkl
+checkpoints_encoder_latest
+results_inference4
+results_inference5
+

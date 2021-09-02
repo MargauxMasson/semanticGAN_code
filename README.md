@@ -27,14 +27,15 @@ docker build . --network=host -t semanticgan_image
 
 GAN training:
 
-docker run --rm -it --name semanticgan2 --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/prepare_inception.py --output FIP_outputs.pkl "/workspace/data2" && python /workspace/semanticGAN/train_seg_gan.py --batch 32 --save_every 2000 --viz_every 2000 --iter 6000 --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --inception /workspace/FIP_outputs.pkl --checkpoint_dir /workspace/checkpoints"
+docker run --rm -it --name semanticgan_GAN --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/prepare_inception.py --output FIP_outputs.pkl "/workspace/data2" && python /workspace/semanticGAN/train_seg_gan.py --batch 32 --save_every 2000 --viz_every 2000 --iter 6000 --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --inception /workspace/FIP_outputs.pkl --checkpoint_dir /workspace/checkpoints"
 
 
 Encoder training:
-docker run --rm -it --name semanticgan2 --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/train_enc.py --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --ckpt /workspace/checkpoints/run-Aug11_04-17-52/ckpt/072000.pt --checkpoint_dir /workspace/checkpoints_encoder"
+docker run --rm -it --name semanticgan_encoder --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/train_enc.py --img_dataset /workspace/data2 --seg_dataset /workspace/data2 --ckpt /workspace/checkpoints/run-Aug11_04-17-52/ckpt/252000.pt --checkpoint_dir /workspace/checkpoints_encoder_latest"
 
 Inference:
-docker run --rm -it --name semanticgan_inference --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/inference.py --ckpt /workspace/checkpoints_encoder/run-Aug11_23-00-31/ckpt/020000.pt --img_dir /workspace/data/test_face_34_class/ --outdir results_inference3 --w_plus --image_mode RGB --seg_dim 8 --step 500"
+docker run --rm -it --name semanticgan_inference --network=host --gpus='device=3' --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 -v ~/temp/semanticGAN_code/:/workspace semanticgan_image bash -c "export PYTHONPATH=/workspace/ && python semanticGAN/inference.py --ckpt /workspace/checkpoints_encoder_latest/run-Aug19_17-00-09/ckpt/176000.pt --img_dir /workspace/data/test_face_34_class/ --outdir results_inference5 --w_plus --image_mode RGB --seg_dim 8 --step 500"
+=======
 
 To reproduce paper **Semantic Segmentation with Generative Models: Semi-Supervised Learning and Strong Out-of-Domain Generalization**: 
 
