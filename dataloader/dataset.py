@@ -115,7 +115,6 @@ class DatasetLoader(Dataset):
             # 7: [ 142,142,56]
         }
 
-
         self.data_size = len(self.img_paths_list)
         print(f"\nLabel: {is_label}, Phase: {phase} -- There are {self.data_size} files")
         self.resolution = resolution

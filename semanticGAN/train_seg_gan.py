@@ -467,6 +467,7 @@ def train(args, ckpt_dir, img_loader, seg_loader, seg_val_loader, generator, dis
                     sample_seg = torch.argmax(sample_seg, dim=1)
                     color_map = seg_val_loader.dataset.color_map
                     print(f'color_map: {color_map}')
+
                     sample_mask = torch.zeros((sample_seg.shape[0], sample_seg.shape[1], sample_seg.shape[2], 3), dtype=torch.float)
                     for key in color_map:
                         sample_mask[sample_seg==key] = torch.tensor(color_map[key], dtype=torch.float)

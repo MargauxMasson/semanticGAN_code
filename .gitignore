@@ -1,6 +1,8 @@
 .DS_Store
 **/.DS_Store
 FIP_outputs_test_travis.pkl
+FIP_outputs.pkl
+FIP_outputs_fish.pkl
 .idea
 **/.idea
 __pycache__
@@ -21,4 +23,5 @@ FIP_outputs.pkl
 checkpoints_encoder_latest
 results_inference4
 results_inference5
+
 
